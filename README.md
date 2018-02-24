@@ -1,101 +1,69 @@
-[![Udacity - Robotics NanoDegree Program](https://s3-us-west-1.amazonaws.com/udacity-robotics/Extra+Images/RoboND_flag.png)](https://www.udacity.com/robotics)
-# Robotic arm - Pick & Place project
+## Project: Kinematics Pick & Place
+### This is the write up for the 6DOF Kuka KR210 serial manipulator pick and place project. The project involves forward and inverse kinematic analysis for calculating 6 joint angles that would bring the manipulator's end effector(gripper) to a given position and orientation.'
 
-Make sure you are using robo-nd VM or have Ubuntu+ROS installed locally.
+---
 
-### One time Gazebo setup step:
-Check the version of gazebo installed on your system using a terminal:
-```sh
-$ gazebo --version
-```
-To run projects from this repository you need version 7.7.0+
-If your gazebo version is not 7.7.0+, perform the update as follows:
-```sh
-$ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
-$ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-$ sudo apt-get update
-$ sudo apt-get install gazebo7
-```
 
-Once again check if the correct version was installed:
-```sh
-$ gazebo --version
-```
-### For the rest of this setup, catkin_ws is the name of active ROS Workspace, if your workspace name is different, change the commands accordingly
+**Steps to complete the project:**  
 
-If you do not have an active ROS workspace, you can create one by:
-```sh
-$ mkdir -p ~/catkin_ws/src
-$ cd ~/catkin_ws/
-$ catkin_make
-```
 
-Now that you have a workspace, clone or download this repo into the **src** directory of your workspace:
-```sh
-$ cd ~/catkin_ws/src
-$ git clone https://github.com/udacity/RoboND-Kinematics-Project.git
-```
+1. Setting up the ROS Workspace.
+2. Downloading or clonning the [project repository](https://github.com/udacity/RoboND-Kinematics-Project) into the ***src*** directory of your ROS Workspace.  
+3. Experimenting with the forward_kinematics environment and getting familiar with the robot.
+4. Launching in [demo mode](https://classroom.udacity.com/nanodegrees/nd209/parts/7b2fd2d7-e181-401e-977a-6158c77bf816/modules/8855de3f-2897-46c3-a805-628b5ecf045b/lessons/91d017b1-4493-4522-ad52-04a74a01094c/concepts/ae64bb91-e8c4-44c9-adbe-798e8f688193).
+5. Performing Kinematic Analysis for the robot following the [project rubric](https://review.udacity.com/#!/rubrics/972/view).
+6. Filling in the `IK_server.py` with the Inverse Kinematics code. 
 
-Now from a terminal window:
 
-```sh
-$ cd ~/catkin_ws
-$ rosdep install --from-paths src --ignore-src --rosdistro=kinetic -y
-$ cd ~/catkin_ws/src/RoboND-Kinematics-Project/kuka_arm/scripts
-$ sudo chmod +x target_spawn.py
-$ sudo chmod +x IK_server.py
-$ sudo chmod +x safe_spawner.sh
-```
-Build the project:
-```sh
-$ cd ~/catkin_ws
-$ catkin_make
-```
+[//]: # (Image References)
 
-Add following to your .bashrc file
-```
-export GAZEBO_MODEL_PATH=~/catkin_ws/src/RoboND-Kinematics-Project/kuka_arm/models
+[image1]: ./misc_images/misc2.png
+[image2]: ./misc_images/KR210.png
+[image3]: ./misc_images/Matrices.png
+[image4]: ./misc_images/KR210_Theta123.png
+[image5]: ./misc_images/R3_6_Matrix.png
+[image6]: ./misc_images/KR210_Theta456.png
 
-source ~/catkin_ws/devel/setup.bash
-```
+## [Rubric](https://review.udacity.com/#!/rubrics/972/view) Points
+### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
-For demo mode make sure the **demo** flag is set to _"true"_ in `inverse_kinematics.launch` file under /RoboND-Kinematics-Project/kuka_arm/launch
+---
 
-In addition, you can also control the spawn location of the target object in the shelf. To do this, modify the **spawn_location** argument in `target_description.launch` file under /RoboND-Kinematics-Project/kuka_arm/launch. 0-9 are valid values for spawn_location with 0 being random mode.
+Here is a snapshot of the KR210 manipulator carrying the blue cylinder towards the drop of location i.e. the bin in this case.
 
-You can launch the project by
-```sh
-$ cd ~/catkin_ws/src/RoboND-Kinematics-Project/kuka_arm/scripts
-$ ./safe_spawner.sh
-```
+![alt text][image1]
 
-If you are running in demo mode, this is all you need. To run your own Inverse Kinematics code change the **demo** flag described above to _"false"_ and run your code (once the project has successfully loaded) by:
-```sh
-$ cd ~/catkin_ws/src/RoboND-Kinematics-Project/kuka_arm/scripts
-$ rosrun kuka_arm IK_server.py
-```
-Once Gazebo and rviz are up and running, make sure you see following in the gazebo world:
+### Kinematic Analysis
+#### 1. Running the forward_kinematics demo and evaluating the kr210.urdf.xacro file to perform kinematic analysis of Kuka KR210 robot and deriving its DH parameters.
 
-	- Robot
-	
-	- Shelf
-	
-	- Blue cylindrical target in one of the shelves
-	
-	- Dropbox right next to the robot
-	
+Drawing the arm on the paper greatly simplifies the process of deriving the modified DH parameter table. Below is a diagram of the manipulator in its initial configuration i.e all joint angles set to zero. The diagram also expresses the compensation for the difference of URDF values versus the way DH parameters are assigned. The DH parameter table has then been derived using the arm diagram.  
 
-If any of these items are missing, report as an issue.
+![alt text][image2]
 
-Once all these items are confirmed, open rviz window, hit Next button.
+#### 2. Using the DH parameter table derived earlier, individual transformation matrices about each joint and generalized homogeneous transform between base_link and gripper_link are being created using Sympy. Here's a how the matrices look from the jupyter notebook's output:
 
-To view the complete demo keep hitting Next after previous action is completed successfully. 
+![alt text][image3]
 
-Since debugging is enabled, you should be able to see diagnostic output on various terminals that have popped up.
 
-The demo ends when the robot arm reaches at the top of the drop location. 
+#### 3. Decoupling the Inverse Kinematics problem into Inverse Position Kinematics and inverse Orientation Kinematics; doing so deriving the equations to calculate all individual joint angles.
 
-There is no loopback implemented yet, so you need to close all the terminal windows in order to restart.
+Using the pose(px,py,pz) and orientation(roll,pitch,yaw) of the end effector available from ROS, the wrist center(WC) can be found. After finding the WC, the equations for calculating theta1, theta2 and theta3 can be derived using geometrical analysis. The diagram below depicts the method: 
 
-In case the demo fails, close all three terminal windows and rerun the script.
+![alt text][image4]
+
+The first three joint angles can then be substituted into R0_6 and R3_6 can be found using, R3_6 = R0_3.transpose() * R0_6, where R0_6 is the rotation matrix from base to the gripper. Here's how the R3_6 looks like from the jupyter notebook output:
+
+![alt text][image5]
+
+Equations for theta4, theta5 and theta6 can then be found using this R3_6 matrix. 
+
+![alt text][image6]
+
+### Project Implementation
+
+#### 1. Filling in the `IK_server.py` file with properly commented python code for calculating Inverse Kinematics based on previously performed Kinematic Analysis. The code must guide the robot to successfully complete 8/10 pick and place cycles.  
+
+The IK_server.py doesn't need the FK part but only the rotation matrix R0_3. I kept parameter symbol definitions, DH table, homogeneous matrices, rotation matrices and matrix simplification code outside the for loop for increasing performance. However, everytime a Calculate IK request is made, these definitions etc are repeated which downgrades the manipulator's performance. Maximizing performance requires making these operations happen only once.
+
+The rest of the code follows naming the variables the same way as presented in the diagrams above.
 
