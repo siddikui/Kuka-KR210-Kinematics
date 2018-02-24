@@ -1,5 +1,5 @@
 ## Project: Kinematics Pick & Place
-### This is the write up for the 6DOF Kuka KR210 serial manipulator pick and place project. The project involves forward and inverse kinematic analysis for calculating 6 joint angles that would bring the manipulator's end effector(gripper) to a given position and orientation.'
+### This is the write up for the 6DOF Kuka KR210 serial manipulator pick and place project. The project involves forward and inverse kinematic analysis for calculating 6 joint angles that would bring the manipulator's end effector(gripper) to a given position and orientation.
 
 ---
 
