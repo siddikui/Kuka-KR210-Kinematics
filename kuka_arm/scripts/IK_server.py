@@ -17,6 +17,8 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from geometry_msgs.msg import Pose
 from mpmath import *
 from sympy import *
+import os
+import pickle
 
 
 def handle_calculate_IK(req):
@@ -52,25 +54,30 @@ def handle_calculate_IK(req):
     	T1_2 = TF_Matrix(alpha1, a1, d2, q2).subs(DH_Table)
     	T2_3 = TF_Matrix(alpha2, a2, d3, q3).subs(DH_Table)
        
-        
-        R_x = Matrix([[1,       0,       0],
-		      [0,  cos(r), -sin(r)],
-   		      [0,  sin(r), cos(r)]]) 
+        if not os.path.exists("R_EE.p"):
 
-        R_y = Matrix([[cos(p), 	0,  sin(p)],
-		      [0, 	1,       0],
-   		      [-sin(p), 0,  cos(p)]]) 
+            R_x = Matrix([[1,       0,       0],
+		          [0,  cos(r), -sin(r)],
+   		          [0,  sin(r), cos(r)]]) 
 
-        R_z = Matrix([[cos(y), -sin(y),  0],
-		      [sin(y),  cos(y),  0],
-		      [     0,       0,  1]]) 
+            R_y = Matrix([[cos(p), 	0,  sin(p)],
+		          [0, 	1,       0],
+   		          [-sin(p), 0,  cos(p)]]) 
 
-        R_EE = simplify(R_z * R_y * R_x)
+            R_z = Matrix([[cos(y), -sin(y),  0],
+		          [sin(y),  cos(y),  0],
+		          [     0,       0,  1]]) 
 
-        R_Error = R_z.subs(y, radians(180)) * R_y.subs(p, radians(-90))
+            R_EE = simplify(R_z * R_y * R_x)
 
-        R_EE = simplify(R_EE * R_Error)
+            R_Error = R_z.subs(y, radians(180)) * R_y.subs(p, radians(-90))
 
+            R_EE = simplify(R_EE * R_Error)
+
+            pickle.dump(R_EE, open("R_EE.p","wb"))
+
+        else:
+            R_EE = pickle.load(open("R_EE.p","rb")) 
 
         # Initialize service response
         joint_trajectory_list = []

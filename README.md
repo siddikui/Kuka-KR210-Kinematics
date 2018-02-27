@@ -24,6 +24,16 @@
 [image5]: ./misc_images/R3_6_Matrix.png
 [image6]: ./misc_images/KR210_Theta456.png
 
+[image7]: ./misc_images/Arm1.png
+[image8]: ./misc_images/Gazebo1.png
+[image9]: ./misc_images/Gazebo2.png
+[image10]: ./misc_images/Gazebo3.png
+[image11]: ./misc_images/Gazebo4.png
+[image12]: ./misc_images/Gazebo5.png
+[image13]: ./misc_images/Rviz1.png
+[image14]: ./misc_images/Rviz2.png
+[image15]: ./misc_images/Rviz3.png
+
 ## [Rubric](https://review.udacity.com/#!/rubrics/972/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
@@ -61,9 +71,47 @@ Equations for theta4, theta5 and theta6 can then be found using this R3_6 matrix
 
 ### Project Implementation
 
-#### 1. Filling in the `IK_server.py` file with properly commented python code for calculating Inverse Kinematics based on previously performed Kinematic Analysis. The code must guide the robot to successfully complete 8/10 pick and place cycles.  
+#### 1. Using the `IK_debug.py` script, working of both the Forward and Inverse Kinematics calculations can be quickly verified against 3 different test cases. 
 
-The IK_server.py doesn't need the FK part but only the rotation matrix R0_3. I kept parameter symbol definitions, DH table, homogeneous matrices, rotation matrices and matrix simplification code outside the for loop for increasing performance. However, everytime a Calculate IK request is made, these definitions etc are repeated which downgrades the manipulator's performance. Maximizing performance requires making these operations happen only once.
+I was able to achieve an overall end effector error of 0.00002831 against all 3 test cases. More test cases can also be generated with Gazebo.  
 
-The rest of the code follows naming the variables the same way as presented in the diagrams above.
 
+#### 2. Filling in the `IK_server.py` file with python code for calculating Inverse Kinematics based on previously performed Kinematic Analysis. The code must guide the robot to successfully complete 8/10 pick and place cycles.  
+
+The IK_server.py doesn't need the FK part but only the rotation matrix R0_3. I kept parameter symbol definitions, DH table and homogeneous matrices, code outside the for loop for increasing performance. However, everytime a Calculate IK request is made, these definitions etc are repeated which downgrades the manipulator's performance. Pickling the R_EE matrix which involves some matrix multiplications helped increase the performance a bit. Using numpy instead of sympy can further improves the performance.
+
+The rest of the code follows naming the variables the same way as presented in the diagrams above. Below, I have added some screen shots from Gazebo and Rviz for a complete pick and place cycle. Running the kuka_arm ROS node with IK_server script and the safe_spawner.sh script would open up the Gazebo, Rviz and related processes.
+
+![alt text][image7]
+
+The expanded Rviz window:
+
+![alt text][image13]
+
+Different veiw perspectives are available in Gazebo and Rviz:
+
+![alt text][image14]
+
+Next are a few steps from pick and place cycle. Reaching target location:
+
+![alt text][image8]
+
+![alt text][image15]
+
+Grasping target:
+
+![alt text][image9]
+
+Retrieving target:
+
+![alt text][image10]
+
+Reached drop off location:
+
+![alt text][image11]
+
+Dropping target:
+
+![alt text][image12]
+
+And [here](https://www.youtube.com/watch?v=OH4tmCHZ6Gk) is a video of a complete pick and place cycle.

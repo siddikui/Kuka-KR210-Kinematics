@@ -2,6 +2,8 @@ from sympy import *
 from time import time
 from mpmath import radians
 import tf
+import os
+import pickle
 
 '''
 Format of test case is [ [[EE position],[EE orientation as quaternions]],[WC location],[joint angles]]
@@ -62,6 +64,7 @@ def test_code(test_case):
     ########################################################################################
     #### Insert IK code here! starting at: Define DH parameter symbols
 
+    #if not os.path.exists("T0_EE.p"):
     # Define DH param symbols  
     
     d1, d2, d3, d4, d5, d6, d7 = symbols('d1:8') # link offset
@@ -70,15 +73,15 @@ def test_code(test_case):
     q1, q2, q3, q4, q5, q6, q7 = symbols('q1:8') # joint angle symbols
     r, p , y = symbols('r p y')
 
-    # Modified DH params
+        # Modified DH params
 
-    DH_Table = {alpha0: 0, 	a0: 0, 		d1: 0.75, 	q1: q1,
-		alpha1: -pi/2., a1: 0.35,	d2: 0, 		q2: -pi/2. + q2,
-		alpha2: 0, 	a2: 1.25, 	d3: 0, 		q3: q3,
-		alpha3: -pi/2., a3: -0.054, 	d4: 1.5, 	q4: q4,
-		alpha4: pi/2, 	a4: 0, 		d5: 0, 		q5: q5,
-		alpha5: -pi/2., a5: 0, 		d6: 0, 		q6: q6,
-		alpha6: 0, 	a6: 0, 		d7: 0.303, 	q7: 0}
+    DH_Table = {alpha0:      0,    a0:    0,    d1: 0.75, 	q1: q1,
+	        alpha1: -pi/2.,    a1: 0.35,    d2: 0, 	q2: -pi/2. + q2,
+	        alpha2:      0,    a2: 1.25,    d3: 0, 	q3: q3,
+		alpha3: -pi/2.,  a3: -0.054,    d4: 1.5, 	q4: q4,
+		alpha4:   pi/2,       a4: 0,    d5: 0, 	q5: q5,
+		alpha5: -pi/2.,       a5: 0,    d6: 0, 	q6: q6,
+		alpha6:      0, 	  a6: 0,    d7: 0.303, 	q7: 0}
 
 
     # define modified DH transformation matrix
@@ -99,10 +102,45 @@ def test_code(test_case):
     T5_6 = TF_Matrix(alpha5, a5, d6, q6).subs(DH_Table)
     T6_EE = TF_Matrix(alpha6, a6, d7, q7).subs(DH_Table)
 
-    T0_EE = simplify(T0_1 * T1_2 * T2_3 * T3_4 * T4_5 * T5_6 * T6_EE)
+    if not os.path.exists("T0_EE.p"):
 
-    R0_3 = simplify(T0_1[0:3,0:3] * T1_2[0:3,0:3] * T2_3[0:3,0:3]) 
-    # Extract end-effector position and orientation from request
+        T0_EE = simplify(T0_1 * T1_2 * T2_3 * T3_4 * T4_5 * T5_6 * T6_EE)
+
+        pickle.dump(T0_EE, open("T0_EE.p","wb"))
+
+        R0_3 = simplify(T0_1[0:3,0:3] * T1_2[0:3,0:3] * T2_3[0:3,0:3]) 
+
+        pickle.dump(R0_3, open("R0_3.p","wb"))
+        # Find EE rotation matrix
+        # Define RPY roation matrices
+
+        R_x = Matrix([[1,            0,         0],
+                      [0,       cos(r),   -sin(r)],
+                      [0,       sin(r),    cos(r)]]) # roll
+
+        R_y = Matrix([[ cos(p),      0,    sin(p)],
+                      [      0,      1,         0],
+                      [-sin(p),      0,    cos(p)]]) # pitch
+
+        R_z = Matrix([[cos(y), -sin(y),         0],
+                      [sin(y),  cos(y),         0],
+                      [     0,       0,         1]]) # yaw
+
+        R_EE = simplify(R_z * R_y * R_x)
+
+        # Error Correction Matrix for DH and URDF difference
+
+        R_Error = R_z.subs(y, radians(180)) * R_y.subs(p, radians(-90))
+        R_EE = simplify(R_EE * R_Error)
+
+        pickle.dump(R_EE, open("R_EE.p","wb"))
+
+    else:
+        T0_EE = pickle.load(open("T0_EE.p","rb"))
+        R0_3 = pickle.load(open("R0_3.p","rb"))
+        R_EE = pickle.load(open("R_EE.p","rb")) 
+
+   # Extract end-effector position and orientation from request
     # px, py, pz = end-effector position
     # roll, pitch, yaw = end-effector orientation
 
@@ -114,27 +152,7 @@ def test_code(test_case):
 			req.poses[x].orientation.x, req.poses[x].orientation.y,
 			req.poses[x].orientation.z, req.poses[x].orientation.w])
 
-    # Find EE rotation matrix
-    # Define RPY roation matrices
 
-    R_x = Matrix([[1,            0,         0],
-                  [0,       cos(r),   -sin(r)],
-                  [0,       sin(r),    cos(r)]]) # roll
-
-    R_y = Matrix([[ cos(p),      0,    sin(p)],
-                  [      0,      1,         0],
-                  [-sin(p),      0,    cos(p)]]) # pitch
-
-    R_z = Matrix([[cos(y), -sin(y),         0],
-                  [sin(y),  cos(y),         0],
-                  [     0,       0,         1]]) # yaw
-
-    R_EE = simplify(R_z * R_y * R_x)
-
-    # Error Correction Matrix for DH and URDF difference
-
-    R_Error = R_z.subs(y, radians(180)) * R_y.subs(p, radians(-90))
-    R_EE = simplify(R_EE * R_Error)
     R_EE = R_EE.subs({'r': roll, 'p': pitch, 'y': yaw})
 
     EE = Matrix([[px], 
@@ -159,7 +177,7 @@ def test_code(test_case):
     phi = atan2(Perp,Base)
 
     C = 1.25
-
+    
     a = acos((B * B + C * C - A * A) / (2 * B * C))
     b = acos((A * A + C * C - B * B) / (2 * A * C))
     c = acos((A * A + B * B - C * C ) / (2 * A * A))
@@ -221,7 +239,7 @@ def test_code(test_case):
     ########################################################################################
 
     ## Error analysis
-    print ("\nTotal run time to calculate joint angles from pose is %04.4f seconds" % (time()-start_time))
+    print ("Total run time to calculate joint angles from pose is %04.4f seconds" % (time()-start_time))
 
     # WC error
     if not(sum(your_wc)==3):
@@ -247,11 +265,12 @@ def test_code(test_case):
     print ("Theta 4 error is: %04.8f" % t_4_e)
     print ("Theta 5 error is: %04.8f" % t_5_e)
     print ("Theta 6 error is: %04.8f" % t_6_e)
+    '''
     print ("\n**These theta errors may not be a correct representation of your code, due to the fact \
            \nthat the arm can have muliple positions. It is best to add your forward kinmeatics to \
            \nconfirm whether your code is working or not**")
     print (" ")
-
+    '''
     # FK EE error
     if not(sum(your_ee)==3):
         ee_x_e = abs(your_ee[0]-test_case[0][0][0])
